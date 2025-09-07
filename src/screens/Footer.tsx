@@ -15,11 +15,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, setActiveTab }) => {
         style={[styles.tab, activeTab === "home" && styles.activeTab]}
         onPress={() => setActiveTab("home")}
       >
-        <Ionicons
-          name="home-outline"
-          size={22}
-          color={activeTab === "home" ? "#fff" : "#333"}
-        />
+       
         <Text
           style={[
             styles.tabText,
