@@ -57,17 +57,72 @@ const ChatBotScreen = () => {
     },
   ];
 
-  const sendMessage = () => {
-    if (input.trim() === "") return;
-    const newMsg = {
-      id: Date.now(),
-      from: "user",
-      text: input,
+  const formatResponse = (resp) => {
+  if (!resp) return "⚠️ No response from AI";
+
+  // If response is an object, convert it to readable string
+  if (typeof resp === "object") {
+    return Object.entries(resp)
+      .map(([key, value]) => {
+        if (typeof value === "object") {
+          return `${key}:\n${JSON.stringify(value, null, 2)}`;
+        }
+        return `${key}: ${value}`;
+      })
+      .join("\n\n");
+  }
+
+  // If it's already a string
+  return resp;
+};
+
+const sendMessage = async () => {
+  if (input.trim() === "") return;
+
+  // Add user message
+  const newMsg = {
+    id: Date.now(),
+    from: "user",
+    text: input,
+    time: "Now",
+  };
+  setMessages((prev) => [...prev, newMsg]);
+
+  try {
+    const response = await fetch("http://192.168.151.117:8000/ai/prompt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({ prompt: input }).toString(),
+    });
+
+    const data = await response.json();
+    console.log("✅ FastAPI Response:", data);
+
+    // Format response properly
+    const botMsg = {
+      id: Date.now() + 1,
+      from: "bot",
+      text: formatResponse(data.response?.response || data.response),
       time: "Now",
     };
-    setMessages([...messages, newMsg]);
-    setInput("");
-  };
+    setMessages((prev) => [...prev, botMsg]);
+  } catch (error) {
+    console.error("Error:", error);
+    const errorMsg = {
+      id: Date.now() + 2,
+      from: "bot",
+      text: "⚠️ Sorry, something went wrong. Please try again.",
+      time: "Now",
+    };
+    setMessages((prev) => [...prev, errorMsg]);
+  }
+
+  setInput("");
+};
+
 
   return (
     <View style={styles.container}>
@@ -168,7 +223,6 @@ const ChatBotScreen = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        
         style={styles.cardsWrapper}
       >
         {infoCards.map((card, i) => (
@@ -192,7 +246,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16,
     borderRadius: 20,
-  
   },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#fff" },
   headerSubtitle: { fontSize: 14, color: "#e5e7eb", marginTop: 4 },
